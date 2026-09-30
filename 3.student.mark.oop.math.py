@@ -50,7 +50,7 @@ def show_marks():
             student_mark = marks[course_id].get(student['id'], "No mark")
             print(f"{student['name']}: {student_mark}")
     else:
-        print("No marks found for this course.")
+        print("No marks found for course.")
 
 while True:
     print("\n1. Input students | 2. Input courses | 3. Input marks")
