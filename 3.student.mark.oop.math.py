@@ -1,74 +1,158 @@
-import math 
+import math
 import numpy as np
-import curses
 
 students = []
 courses = []
-marks = {}
-credits = {}
+marks = {}       
+credits_dict = {} 
 
 def input_students():
-    """Input number of students in a class, then their information"""
     num_students = int(input("Enter number of students: "))
     for i in range(num_students):
+        print(f"\n--- Student {i+1} ---")
         s_id = input("Student ID: ")
         name = input("Student Name: ")
         dob = input("Date of Birth: ")
         students.append({"id": s_id, "name": name, "dob": dob})
 
 def input_courses():
-    """Input number of courses, then their information"""
     num_courses = int(input("Enter number of courses: "))
     for i in range(num_courses):
+        print(f"\n--- Course {i+1} ---")
         c_id = input("Course ID: ")
         name = input("Course Name: ")
+        credit = int(input("Course Credits (e.g., 3): "))
         courses.append({"id": c_id, "name": name})
+        credits_dict[c_id] = credit
 
 def input_marks():
-    """Select a course, input marks for students in this course"""
     course_id = input("Enter Course ID to input marks: ")
-    marks[course_id] = {}
+    if course_id not in [c['id'] for c in courses]:
+        print("Course ID not found!")
+        return
+        
+    if course_id not in marks:
+        marks[course_id] = {}
+        
+    print(f"--- Entering Marks for Course: {course_id} ---")
     for student in students:
-        mark = math.floor(float(input(f"Enter mark for {student['name']}: ")))
-        marks[course_id][student['id']] = mark
+        raw_mark = float(input(f"Enter mark for {student['name']} (0-20): "))
+        floored_mark = math.floor(raw_mark * 10) / 10.0
+        marks[course_id][student['id']] = floored_mark
 
 def list_courses():
-    """List all courses"""
+    print("\n--- Courses ---")
     for course in courses:
-        print(f"ID: {course['id']}, Name: {course['name']}")
+        c_credit = credits_dict.get(course['id'], 0)
+        print(f"ID: {course['id']} | Name: {course['name']} | Credits: {c_credit}")
 
 def list_students():
-    """List all students"""
+    print("\n--- Students ---")
     for student in students:
-        print(f"ID: {student['id']}, Name: {student['name']}, DoB: {student['dob']}")
+        print(f"ID: {student['id']} | Name: {student['name']} | DoB: {student['dob']}")
 
 def show_marks():
-    """Show student marks for a given course"""
     course_id = input("Enter Course ID to view marks: ")
     if course_id in marks:
+        print(f"\n--- Marks for Course {course_id} ---")
         for student in students:
-            student_mark = marks[course_id].get(student['id'], "No mark")
-            print(f"{student['name']}: {student_mark}")
+            m = marks[course_id].get(student['id'], "No mark")
+            print(f"{student['name']}: {m}")
     else:
-        print("No marks found for course.")
+        print("No marks found for this course.")
 
-while True:
-    print("\n1. Input students | 2. Input courses | 3. Input marks")
-    print("4. List students  | 5. List courses  | 6. Show marks | 0. Exit")
+def calculate_gpa(student_id):
+    """Calculate average GPA for a given student using numpy arrays (weighted sum of credits and marks)"""
+    student_marks = []
+    course_credits = []
     
-    choice = input("Select an option: ")
+    for c_id, course_marks in marks.items():
+        if student_id in course_marks:
+            student_marks.append(course_marks[student_id])
+            course_credits.append(credits_dict.get(c_id, 0))
+            
+    if not student_marks:
+        return 0.0
+        
+    marks_arr = np.array(student_marks)
+    credits_arr = np.array(course_credits)
     
-    if choice == '1':
-        input_students()
-    elif choice == '2':
-        input_courses()
-    elif choice == '3':
-        input_marks()
-    elif choice == '4':
-        list_students()
-    elif choice == '5':
-        list_courses()
-    elif choice == '6':
-        show_marks()
-    elif choice == '0':
+    total_credits = np.sum(credits_arr)
+    if total_credits == 0:
+        return 0.0
+        
+    gpa = np.sum(marks_arr * credits_arr) / total_credits
+    return float(gpa)
+
+def sort_students_by_gpa():
+    """Sort student list by GPA descending using numpy/calculated GPAs"""
+    student_gpas = []
+    for student in students:
+        gpa = calculate_gpa(student['id'])
+        student_gpas.append((student, gpa))
+        
+    student_gpas.sort(key=lambda x: x[1], reverse=True)
+    
+    print("\n--- Students Sorted by GPA (Descending) ---")
+    for student, gpa in student_gpas:
+        print(f"Name: {student['name']} (ID: {student['id']}) - GPA: {gpa:.2f}")
+
+def curses_menu(stdscr):
+    """Optional curses module UI decoration wrapper"""
+    import curses
+    curses.curs_set(0)
+    while True:
+        stdscr.clear()
+        stdscr.addstr(0, 0, "STUDENT MARK MANAGEMENT", curses.A_BOLD)
+        stdscr.addstr(2, 2, "1. Input Students")
+        stdscr.addstr(3, 2, "2. Input Courses")
+        stdscr.addstr(4, 2, "3. Input Marks (with math.floor)")
+        stdscr.addstr(5, 2, "4. List Students & Courses")
+        stdscr.addstr(6, 2, "5. Show Course Marks")
+        stdscr.addstr(7, 2, "6. Sort Students by GPA (Descending)")
+        stdscr.addstr(8, 2, "0. Exit Terminal UI")
+        stdscr.addstr(10, 2, "Select option (or run text mode via standard input): ")
+        stdscr.refresh()
+        
         break
+
+def main():
+    import curses; curses.wrapper(curses_menu)
+    
+    while True:
+        print("\n" + "="*40)
+        print("STUDENT MARK MANAGEMENT SYSTEM")
+        print("="*40)
+        print("1. Input students")
+        print("2. Input courses & credits")
+        print("3. Input marks")
+        print("4. List students")
+        print("5. List courses")
+        print("6. Show marks for a course")
+        print("7. Sort students by GPA descending")
+        print("0. Exit")
+        
+        choice = input("Select an option: ")
+        
+        if choice == '1':
+            input_students()
+        elif choice == '2':
+            input_courses()
+        elif choice == '3':
+            input_marks()
+        elif choice == '4':
+            list_students()
+        elif choice == '5':
+            list_courses()
+        elif choice == '6':
+            show_marks()
+        elif choice == '7':
+            sort_students_by_gpa()
+        elif choice == '0':
+            print("Exiting program.")
+            break
+        else:
+            print("Invalid option. Try again.")
+
+if __name__ == "__main__":
+    main()

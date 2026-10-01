@@ -1,25 +1,46 @@
-import numpy as np
 import curses
+import numpy as np
 
-def list_courses(courses_list):
-    print("\n--- Courses ---")
-    for course in courses_list:
-        print(f"ID: {course.id} | Name: {course.name} | Credits: {course.credits}")
-
-def list_students(students_list):
-    print("\n--- Students ---")
+def list_students(stdscr, students_list):
+    stdscr.clear()
+    stdscr.addstr(0, 0, "List of Students", curses.A_BOLD)
+    row = 2
     for student in students_list:
-        print(f"ID: {student.id} | Name: {student.name} | DoB: {student.dob}")
+        stdscr.addstr(row, 0, f"ID: {student.id} | Name: {student.name} | DoB: {student.dob}")
+        row += 1
+    stdscr.addstr(row + 2, 0, "Press any key to return...")
+    stdscr.getch()
 
-def show_marks(students_list, marks_dict):
-    course_id = input("Enter Course ID to view marks: ")
+def list_courses(stdscr, courses_list):
+    stdscr.clear()
+    stdscr.addstr(0, 0, "List of Courses", curses.A_BOLD)
+    row = 2
+    for course in courses_list:
+        stdscr.addstr(row, 0, f"ID: {course.id} | Name: {course.name} | Credits: {course.credits}")
+        row += 1
+    stdscr.addstr(row + 2, 0, "Press any key to return...")
+    stdscr.getch()
+
+def show_marks(stdscr, students_list, marks_dict):
+    stdscr.clear()
+    curses.echo()
+    stdscr.addstr(0, 0, "Enter Course ID to view marks: ")
+    course_id = stdscr.getstr(0, 31, 20).decode('utf-8')
+    curses.noecho()
+    
+    stdscr.clear()
     if course_id in marks_dict:
-        print(f"\n--- Marks for Course {course_id} ---")
+        stdscr.addstr(0, 0, f"Marks for Course {course_id}", curses.A_BOLD)
+        row = 2
         for student in students_list:
             m = marks_dict[course_id].get(student.id, "No mark")
-            print(f"{student.name}: {m}")
+            stdscr.addstr(row, 0, f"{student.name}: {m}")
+            row += 1
     else:
-        print("No marks found for this course.")
+        stdscr.addstr(0, 0, "No marks found for this course.")
+        
+    stdscr.addstr(curses.LINES - 2, 0, "Press any key to return...")
+    stdscr.getch()
 
 def calculate_gpa(student, marks_dict, courses_list):
     student_marks = []
@@ -43,7 +64,8 @@ def calculate_gpa(student, marks_dict, courses_list):
     gpa = np.sum(marks_arr * credits_arr) / total_credits
     return float(gpa)
 
-def sort_students_by_gpa(students_list, marks_dict, courses_list):
+def sort_students_by_gpa(stdscr, students_list, marks_dict, courses_list):
+    stdscr.clear()
     student_gpas = []
     for student in students_list:
         gpa = calculate_gpa(student, marks_dict, courses_list)
@@ -51,15 +73,11 @@ def sort_students_by_gpa(students_list, marks_dict, courses_list):
         
     student_gpas.sort(key=lambda x: x[1], reverse=True)
     
-    print("\n--- Students Sorted by GPA (Descending) ---")
+    stdscr.addstr(0, 0, "Students Sorted by GPA (Descending)", curses.A_BOLD)
+    row = 2
     for student, gpa in student_gpas:
-        print(f"Name: {student.name} (ID: {student.id}) - GPA: {gpa:.2f}")
-
-def curses_menu(stdscr):
-    """Optional curses UI implementation"""
-    curses.curs_set(0)
-    stdscr.clear()
-    stdscr.addstr(0, 0, "=== STUDENT MARK MANAGEMENT (CURSES UI) ===", curses.A_BOLD)
-    stdscr.addstr(2, 2, "Press any key to exit curses and return to CLI...")
-    stdscr.refresh()
+        stdscr.addstr(row, 0, f"Name: {student.name} (ID: {student.id}) - GPA: {gpa:.2f}")
+        row += 1
+        
+    stdscr.addstr(row + 2, 0, "Press any key to return...")
     stdscr.getch()
